@@ -1,6 +1,76 @@
-# services:
-  # backend:
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017" 
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
-  # gateway:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+      args:
+        NODE_VERSION: lts-alpine
+    container_name: backend
+    restart: on-failure
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "9229:9229"
+    environment:
+      NODE_ENV: development
+      PORT: ${BACKEND_PORT}
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DATABASE}?authSource=admin
+    networks:
+      - app_network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command: npm run dev
+  gateway:
+    build:
+      context: ../gateway
+      dockerfile: Dockerfile.dev
+      args:
+        NODE_VERSION: lts-alpine
+    container_name: gateway
+    restart: on-failure
+    volumes:
+      - ../gateway:/app
+      - /app/node_modules
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    environment:
+      NODE_ENV: development
+      GATEWAY_PORT: ${GATEWAY_PORT}
+      BACKEND_URL: http://backend:${BACKEND_PORT}
+    networks:
+      - app_network
+    depends_on:
+      backend:
+        condition: service_started
+    command: npm run dev
 
-  # mongo:
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local

@@ -66,10 +66,10 @@ services:
     tmpfs:
       - /tmp
     ports:
-      - "${GATEWAY_PORT}:8080"
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
     environment:
       NODE_ENV: production
-      PORT: ${GATEWAY_PORT}
+      GATEWAY_PORT: ${GATEWAY_PORT}
       BACKEND_URL: http://backend:${BACKEND_PORT}
     networks:
       - app_network

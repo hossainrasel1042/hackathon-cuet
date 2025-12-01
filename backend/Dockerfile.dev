@@ -1,0 +1,9 @@
+FROM node:lts-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN apk add --no-cache python3 make g++ \
+    && npm install
+
+COPY . .
+EXPOSE 3847
+CMD ["npm", "run", "dev"]
