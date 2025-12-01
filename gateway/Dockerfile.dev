@@ -1,0 +1,12 @@
+ARG NODE_VERSION=lts-alpine
+FROM node:${NODE_VERSION}
+ENV NODE_ENV=development
+WORKDIR /app
+RUN apk add --no-cache curl
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 5921
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=5 \
+  CMD curl -f http://localhost:5921/health || exit 1
+CMD ["npm", "run", "dev"]
